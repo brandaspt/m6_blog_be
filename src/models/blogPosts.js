@@ -7,7 +7,6 @@ const blogPostSchema = mongoose.Schema(
     cover: String,
     authorId: { type: String, required: true },
     content: { type: String, required: true },
-    comments: { type: Array, default: [] },
     readTime: { type: String, required: true },
   },
   { timestamps: true }

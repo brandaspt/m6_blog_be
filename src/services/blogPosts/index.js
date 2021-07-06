@@ -1,18 +1,15 @@
 import express from "express"
-import uniqid from "uniqid"
 import readingTime from "reading-time"
 import mongoose from "mongoose"
 import createError from "http-errors"
 import striptags from "striptags"
 
 import { coversParser } from "../../settings/cloudinary.js"
-
-import { commentBodyValidation, checkValidationResult, filterRequest, commentsKeys } from "./validation.js"
 import { getPost } from "./middlewares.js"
-import { getPostsArr, writePosts, getAuthorsArr } from "../../lib/fs-tools.js"
 
 import BlogPost from "../../models/blogPosts.js"
 import Author from "../../models/author.js"
+import Comment from "../../models/comments.js"
 
 const blogPostsRouter = express.Router()
 
@@ -79,31 +76,24 @@ blogPostsRouter.delete("/:postId", getPost, async (req, res, next) => {
 })
 
 // POST comment
-blogPostsRouter.post(
-  "/:postId/comments",
-  getPost,
-  commentBodyValidation,
-  checkValidationResult,
-  filterRequest({ field: "body", keys: commentsKeys }),
-  async (req, res, next) => {
-    try {
-      const postsArr = await getPostsArr()
-      const newComment = { ...req.body, _id: uniqid(), createdAt: new Date() }
-      postsArr[res.locals.requiredPostIndex].comments.push(newComment)
-
-      await writePosts(postsArr)
-
-      res.status(201).send(newComment)
-    } catch (error) {
-      next(err)
-    }
+blogPostsRouter.post("/:postId/comments", getPost, async (req, res, next) => {
+  const newComment = req.body
+  newComment.postId = res.locals.post._id
+  try {
+    const createdComment = await new Comment(newComment)
+    await createdComment.save()
+    res.status(201).send(createdComment)
+  } catch (error) {
+    if (error.name === "ValidationError") next(createError(400, error.errors))
+    else next(error)
   }
-)
+})
 
-// GET all comments
+// GET all comments by post ID
 blogPostsRouter.get("/:postId/comments", getPost, async (req, res, next) => {
   try {
-    res.send(res.locals.requiredPost.comments)
+    const comments = await Comment.find({ postId: res.locals.post._id })
+    res.json(comments)
   } catch (error) {
     next(error)
   }
@@ -111,17 +101,11 @@ blogPostsRouter.get("/:postId/comments", getPost, async (req, res, next) => {
 
 // POST cover
 blogPostsRouter.post("/:postId/uploadCover", getPost, coversParser.single("postCover"), async (req, res, next) => {
+  res.locals.post.cover = req.file.path
   try {
-    const postsArr = await getPostsArr()
-    const postIndex = res.locals.requiredPostIndex
+    const updatedPost = await res.locals.post.save()
 
-    // Updating posts array
-    const updatedPost = { ...postsArr[postIndex], updatedAt: new Date() }
-    updatedPost.cover = req.file.path
-    postsArr[postIndex] = updatedPost
-    await writePosts(postsArr)
-
-    res.status(201).send(updatedPost)
+    res.json({ coverURL: updatedPost.cover })
   } catch (error) {
     next(error)
   }
