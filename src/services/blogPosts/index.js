@@ -26,7 +26,7 @@ blogPostsRouter.get("/", async (req, res, next) => {
 // GET single blog post
 blogPostsRouter.get("/:postId", getPost, async (req, res, next) => {
   try {
-    res.send(res.locals.requiredPost)
+    res.send(res.locals.post)
   } catch (error) {
     next(error)
   }
