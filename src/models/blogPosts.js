@@ -1,13 +1,26 @@
 import mongoose from "mongoose"
 
+const reqString = {
+  type: String,
+  required: true,
+}
+
+const commentSchema = mongoose.Schema({
+  authorName: reqString,
+  comment: reqString,
+  createdAt: { type: Date, required: true },
+  updatedAt: { type: Date, required: true },
+})
+
 const blogPostSchema = mongoose.Schema(
   {
-    title: { type: String, required: true },
-    category: { type: String, required: true },
+    title: reqString,
+    category: reqString,
     cover: String,
-    authorId: { type: String, required: true },
-    content: { type: String, required: true },
-    readTime: { type: String, required: true },
+    authorId: reqString,
+    content: reqString,
+    readTime: reqString,
+    comments: [commentSchema],
   },
   { timestamps: true }
 )
