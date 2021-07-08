@@ -19,7 +19,7 @@ const blogPostSchema = new Schema(
     title: reqString,
     category: reqString,
     cover: String,
-    authorId: reqString,
+    author: { type: Schema.Types.ObjectId, required: true, ref: "Author" },
     content: reqString,
     readTime: reqString,
     comments: [commentSchema],

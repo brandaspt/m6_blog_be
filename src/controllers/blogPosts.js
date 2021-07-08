@@ -12,7 +12,7 @@ import striptags from "striptags"
 // GET all blog posts
 export const getAllPosts = async (req, res, next) => {
   try {
-    const blogPosts = await BlogPost.find()
+    const blogPosts = await BlogPost.find().populate("author")
     res.json(blogPosts)
   } catch (error) {
     next(error)
@@ -20,26 +20,24 @@ export const getAllPosts = async (req, res, next) => {
 }
 
 // GET single blog post
-export const getSinglePost = async (req, res, next) => {
+export const getSinglePost = (req, res, next) => {
   res.json(res.locals.post)
 }
 
 // POST blog post
 export const addNewPost = async (req, res, next) => {
-  const { authorId } = req.body
   const blogPost = { ...req.body }
 
   try {
+    const authorExists = await Author.exists({ _id: req.body.author })
+    if (!authorExists) return next(createError(404, `Author with id ${req.body.author} not found`))
     // Adding read time
     blogPost.readTime = readingTime(striptags(req.body.content)).text
-
-    const author = await Author.findById(authorId)
-    if (!author) return next(createError(404, `Author with id ${authorId} not found`))
     const newBlogPost = new BlogPost(blogPost)
     await newBlogPost.save()
     res.status(201).json(newBlogPost)
   } catch (error) {
-    if (error.name === "CastError") next(createError(400, error.message))
+    if (error.name === "ValidationError") next(createError(400, error.message))
     else next(error)
   }
 }
@@ -50,11 +48,13 @@ export const editPost = async (req, res, next) => {
   // Updating read time if content was updated
   if (req.body.content) update.readTime = readingTime(striptags(req.body.content)).text
   try {
+    const authorExists = await Author.exists({ _id: req.body.author })
+    if (!authorExists) return next(createError(404, `Author with id ${req.body.author} not found`))
     const updatedPost = await BlogPost.findByIdAndUpdate(req.params.postId, update, { new: true, runValidators: true })
     if (!updatedPost) return next(createError(404, `Post with id ${req.params.postId} not found`))
     res.json(updatedPost)
   } catch (error) {
-    if (error.name === "ValidationError") next(createError(400, error.message))
+    if (error.name === "ValidationError" || error.name === "CastError") next(createError(400, error.message))
     else next(error)
   }
 }

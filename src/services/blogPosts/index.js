@@ -1,7 +1,8 @@
 import express from "express"
 
 import { coversParser } from "../../settings/cloudinary.js"
-import { getPost, validateObjectId } from "./middlewares.js"
+import { getPost } from "./middlewares.js"
+import { validateObjectId } from "../sharedMiddlewares.js"
 
 import {
   addNewComment,

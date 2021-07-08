@@ -4,10 +4,12 @@ import Author from "../../models/author.js"
 export const getAuthor = async (req, res, next) => {
   try {
     const author = await Author.findById(req.params.authorId)
-    res.locals.author = author
-    next()
+    if (author) {
+      res.locals.author = author
+      next()
+    } else next(createError(404, `Author with id ${req.params.authorId} not found`))
   } catch (error) {
-    next(createError(404, `Author with id ${req.params.authorId} not found`))
+    next(error)
   }
 }
 
