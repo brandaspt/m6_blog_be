@@ -1,18 +1,20 @@
 import mongoose from "mongoose"
 
+const { Schema, model } = mongoose
+
 const reqString = {
   type: String,
   required: true,
 }
 
-const commentSchema = mongoose.Schema({
+const commentSchema = new Schema({
   authorName: reqString,
   comment: reqString,
   createdAt: { type: Date, required: true },
   updatedAt: { type: Date, required: true },
 })
 
-const blogPostSchema = mongoose.Schema(
+const blogPostSchema = new Schema(
   {
     title: reqString,
     category: reqString,
@@ -25,6 +27,6 @@ const blogPostSchema = mongoose.Schema(
   { timestamps: true }
 )
 
-const BlogPost = mongoose.model("BlogPost", blogPostSchema)
+const BlogPost = model("BlogPost", blogPostSchema)
 
 export default BlogPost

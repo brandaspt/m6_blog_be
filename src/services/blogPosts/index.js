@@ -1,7 +1,7 @@
 import express from "express"
 
 import { coversParser } from "../../settings/cloudinary.js"
-import { getComment, getPost } from "./middlewares.js"
+import { getPost, validateObjectId } from "./middlewares.js"
 
 import {
   addNewComment,
@@ -27,41 +27,41 @@ const blogPostsRouter = express.Router()
 blogPostsRouter.get("/", getAllPosts)
 
 // GET single blog post
-blogPostsRouter.get("/:postId", getPost, getSinglePost)
+blogPostsRouter.get("/:postId", validateObjectId, getPost, getSinglePost)
 
 // POST blog post
 blogPostsRouter.post("/", addNewPost)
 
 // PUT blog post
-blogPostsRouter.put("/:postId", getPost, editPost)
+blogPostsRouter.put("/:postId", validateObjectId, editPost)
 
 // DELETE blog post
-blogPostsRouter.delete("/:postId", getPost, deletePost)
+blogPostsRouter.delete("/:postId", validateObjectId, deletePost)
 
 // ################
 // ### COMMENTS ###
 // ################
 
 // GET all comments by post ID
-blogPostsRouter.get("/:postId/comments", getPost, getPostComments)
+blogPostsRouter.get("/:postId/comments", validateObjectId, getPost, getPostComments)
 
 // GET single comment on a post
-blogPostsRouter.get("/:postId/comments/:commentId", getComment, getSingleComment)
+blogPostsRouter.get("/:postId/comments/:commentId", validateObjectId, getSingleComment)
 
 // POST comment on a post
-blogPostsRouter.post("/:postId/comments", addNewComment)
+blogPostsRouter.post("/:postId/comments", validateObjectId, addNewComment)
 
 // PUT comment on a post
-blogPostsRouter.put("/:postId/comments/:commentId", getComment, updateComment)
+blogPostsRouter.put("/:postId/comments/:commentId", validateObjectId, getPost, updateComment)
 
 // DELETE comment on a post
-blogPostsRouter.delete("/:postId/comments/:commentId", getComment, deleteComment)
+blogPostsRouter.delete("/:postId/comments/:commentId", validateObjectId, getPost, deleteComment)
 
 // #############
 // ### COVER ###
 // #############
 
 // POST cover
-blogPostsRouter.post("/:postId/uploadCover", getPost, coversParser.single("postCover"), uploadCover)
+blogPostsRouter.post("/:postId/uploadCover", validateObjectId, getPost, coversParser.single("postCover"), uploadCover)
 
 export default blogPostsRouter

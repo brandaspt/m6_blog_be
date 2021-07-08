@@ -21,21 +21,18 @@ export const getAllPosts = async (req, res, next) => {
 
 // GET single blog post
 export const getSinglePost = async (req, res, next) => {
-  try {
-    res.send(res.locals.post)
-  } catch (error) {
-    next(error)
-  }
+  res.json(res.locals.post)
 }
 
 // POST blog post
 export const addNewPost = async (req, res, next) => {
   const { authorId } = req.body
   const blogPost = { ...req.body }
-  // Adding read time
-  blogPost.readTime = readingTime(striptags(req.body.content)).text
 
   try {
+    // Adding read time
+    blogPost.readTime = readingTime(striptags(req.body.content)).text
+
     const author = await Author.findById(authorId)
     if (!author) return next(createError(404, `Author with id ${authorId} not found`))
     const newBlogPost = new BlogPost(blogPost)
@@ -54,17 +51,20 @@ export const editPost = async (req, res, next) => {
   if (req.body.content) update.readTime = readingTime(striptags(req.body.content)).text
   try {
     const updatedPost = await BlogPost.findByIdAndUpdate(req.params.postId, update, { new: true, runValidators: true })
+    if (!updatedPost) return next(createError(404, `Post with id ${req.params.postId} not found`))
     res.json(updatedPost)
   } catch (error) {
-    next(createError(400, error.message))
+    if (error.name === "ValidationError") next(createError(400, error.message))
+    else next(error)
   }
 }
 
 // DELETE blog post
 export const deletePost = async (req, res, next) => {
   try {
-    await res.locals.post.remove()
-    res.json({ message: "Post deleted successfully" })
+    const deletedPost = await BlogPost.findByIdAndDelete(req.params.postId)
+    if (!deletedPost) return next(createError(404, `Post with id ${req.params.postId} not found`))
+    res.json(deletedPost)
   } catch (error) {
     next(error)
   }
@@ -81,7 +81,17 @@ export const getPostComments = async (req, res, next) => {
 
 // GET single comment on a post
 export const getSingleComment = async (req, res, next) => {
-  res.json(res.locals.comment)
+  try {
+    const response = await BlogPost.findById(req.params.postId, {
+      comments: { $elemMatch: { _id: req.params.commentId } },
+    })
+    if (!response) return next(createError(404, `Post with id ${req.params.postId} not found`))
+    const { comments } = response
+    if (!comments.length) return next(createError(404, `Comment with id ${req.params.commentId} not found`))
+    res.json(comments)
+  } catch (error) {
+    next(error)
+  }
 }
 
 // POST comment on a post
@@ -102,49 +112,59 @@ export const addNewComment = async (req, res, next) => {
       }
     )
     if (!updatedPost) return next(createError(404, `Post with id ${req.params.postId} not found`))
-    res.json(updatedPost)
+    res.status(201).json(updatedPost)
   } catch (error) {
-    if (["ValidationError", "CastError"].includes(error.name)) next(createError(400, error.message))
+    if (error.name === "ValidationError") next(createError(400, error.message))
     else next(error)
   }
 }
 
 // PUT comment on a post
 export const updateComment = async (req, res, next) => {
+  const post = res.locals.post
+  const index = post.comments.findIndex(comment => comment._id.toString() === req.params.commentId)
+  if (index === -1) return next(createError(404, `Comment with id ${req.params.commentId} not found`))
+  post.comments[index] = { ...post.comments[index].toObject(), ...req.body, updatedAt: new Date() }
   try {
-    const oldComment = { ...res.locals.comment.toObject() }
-    const updatedPost = await BlogPost.findOneAndUpdate(
-      {
-        _id: req.params.postId,
-        "comments._id": req.params.commentId,
-      },
-      {
-        $set: { "comments.$": { ...oldComment, ...req.body, updatedAt: new Date() } },
-      },
-      {
-        new: true,
-      }
-    )
-    res.json(updatedPost)
+    // const updatedPost = await BlogPost.findOneAndUpdate(
+    //   {
+    //     _id: req.params.postId,
+    //     "comments._id": req.params.commentId,
+    //   },
+    //   {
+    //     $set: { "comments.$": { ...oldComment, ...req.body, updatedAt: new Date() } },
+    //   },
+    //   {
+    //     new: true,
+    //   }
+    // )
+    await post.save()
+    res.json(post)
   } catch (error) {
-    next(error)
+    if (error.name === "ValidationError") next(createError(400, error.message))
+    else next(error)
   }
 }
 
 // DELETE comment on a post
 export const deleteComment = async (req, res, next) => {
+  const post = res.locals.post
+  const index = post.comments.findIndex(comment => comment._id.toString() === req.params.commentId)
+  if (index === -1) return next(createError(404, `Comment with id ${req.params.commentId} not found`))
+  post.comments.splice(post.comments[index], 1)
   try {
-    const updatedPost = await BlogPost.findByIdAndUpdate(
-      req.params.postId,
-      {
-        $pull: { comments: { _id: req.params.commentId } },
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
-    )
-    res.json(updatedPost)
+    // const updatedPost = await BlogPost.findByIdAndUpdate(
+    //   req.params.postId,
+    //   {
+    //     $pull: { comments: { _id: req.params.commentId } },
+    //   },
+    //   {
+    //     new: true,
+    //     runValidators: true,
+    //   }
+    // )
+    await post.save()
+    res.json(post)
   } catch (error) {
     next(error)
   }
@@ -156,11 +176,10 @@ export const deleteComment = async (req, res, next) => {
 
 // POST cover
 export const uploadCover = async (req, res, next) => {
-  res.locals.post.cover = req.file.path
   try {
-    const updatedPost = await res.locals.post.save()
-
-    res.json({ coverURL: updatedPost.cover })
+    const updatedPost = await BlogPost.findByIdAndUpdate(req.params.postId, { cover: req.file.path }, { new: true })
+    if (!updatedPost) return next(createError(404, `Post with id ${req.params.postId} not found`))
+    res.json(updatedPost)
   } catch (error) {
     next(error)
   }

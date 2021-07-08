@@ -1,5 +1,6 @@
 import createError from "http-errors"
 import BlogPost from "../../models/blogPosts.js"
+import mongoose from "mongoose"
 
 export const getPost = async (req, res, next) => {
   try {
@@ -9,23 +10,16 @@ export const getPost = async (req, res, next) => {
       next()
     } else next(createError(404, `Post with id ${req.params.postId} not found`))
   } catch (error) {
-    next(createError(404, `Post with id ${req.params.postId} not found`))
+    next(error)
   }
 }
 
-export const getComment = async (req, res, next) => {
-  try {
-    const response = await BlogPost.findById(req.params.postId, {
-      comments: { $elemMatch: { _id: req.params.commentId } },
-    })
-    if (!response) return next(createError(404, `Post with id ${req.params.postId} not found`))
-    const { comments } = response
-    if (!comments.length) return next(createError(404, `Comment with id ${req.params.commentId} not found`))
-    res.locals.comment = comments[0]
-    next()
-  } catch (error) {
-    if (error.name === "CastError") return next(createError(400, error.message))
-    if (error.name === "MongoError") return next(createError(400, "Invalid comment ID"))
-    next(error)
+export const validateObjectId = async (req, res, next) => {
+  if (req.params.postId) {
+    if (!mongoose.isValidObjectId(req.params.postId)) return next(createError(400, "Invalid post ID"))
   }
+  if (req.params.commentId) {
+    if (!mongoose.isValidObjectId(req.params.commentId)) return next(createError(400, "Invalid comment ID"))
+  }
+  next()
 }
