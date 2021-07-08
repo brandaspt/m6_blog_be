@@ -4,6 +4,7 @@ import Author from "../models/author.js"
 import createError from "http-errors"
 import readingTime from "reading-time"
 import striptags from "striptags"
+import mongoose from "mongoose"
 
 // #############
 // ### POSTS ###
@@ -165,6 +166,37 @@ export const deleteComment = async (req, res, next) => {
     // )
     await post.save()
     res.json(post)
+  } catch (error) {
+    next(error)
+  }
+}
+
+// #############
+// ### LIKES ###
+// #############
+
+// POST toggle like on blog post
+export const toggleLikeBlogPost = async (req, res, next) => {
+  const authorId = req.body.authorId
+  if (!mongoose.isValidObjectId(authorId)) return next(createError(400, "Invalid author ID"))
+
+  try {
+    // Check if author exists in db
+    const authorExists = await Author.exists({ _id: authorId })
+    if (!authorExists) return next(createError(404, `Author with id ${authorId} not found`))
+
+    // Check if post exists in db
+    const postExists = await BlogPost.exists({ _id: req.params.postId })
+    if (!postExists) return next(createError(404, `Post with id ${req.params.postId} not found`))
+
+    // Check if author already likes the post
+    const isAuthorInLikesArr = await BlogPost.findOne({ _id: req.params.postId, likes: authorId })
+    let updatedPost
+    // If so, dislike
+    if (isAuthorInLikesArr) updatedPost = await BlogPost.findByIdAndUpdate(req.params.postId, { $pull: { likes: authorId } }, { new: true })
+    // If not, like
+    else updatedPost = await BlogPost.findByIdAndUpdate(req.params.postId, { $push: { likes: authorId } }, { new: true })
+    res.json(updatedPost)
   } catch (error) {
     next(error)
   }

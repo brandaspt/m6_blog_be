@@ -2,6 +2,7 @@ import createError from "http-errors"
 
 import Author from "../models/author.js"
 
+// ### GET all authors ###
 export const getAllAuthors = async (req, res, next) => {
   try {
     const authors = await Author.find()
@@ -11,10 +12,12 @@ export const getAllAuthors = async (req, res, next) => {
   }
 }
 
+// ### GET single author ###
 export const getSingleAuthor = (req, res, next) => {
   res.json(res.locals.author)
 }
 
+// ### POST new author ###
 export const addNewAuthor = async (req, res, next) => {
   const author = { ...req.body }
   author.avatar = `https://ui-avatars.com/api/?name=${author.name}+${author.surname}`
@@ -28,6 +31,7 @@ export const addNewAuthor = async (req, res, next) => {
   }
 }
 
+// ### PUT author ###
 export const editAuthor = async (req, res, next) => {
   const update = { ...req.body }
   if (res.locals.avatar) update.avatar = res.locals.avatar
@@ -41,6 +45,7 @@ export const editAuthor = async (req, res, next) => {
   }
 }
 
+// ### DELETE author ###
 export const deleteAuthor = async (req, res, next) => {
   try {
     const deletedAuthor = await Author.findByIdAndDelete(req.params.authorId)
@@ -51,6 +56,7 @@ export const deleteAuthor = async (req, res, next) => {
   }
 }
 
+// ### POST author avatar ###
 export const uploadAvatar = async (req, res, next) => {
   const author = res.locals.author
   author.avatar = req.file.path
@@ -63,6 +69,7 @@ export const uploadAvatar = async (req, res, next) => {
   }
 }
 
+// ### GET check email ###
 export const checkEmail = async (req, res, next) => {
   const email = req.body.email
   try {

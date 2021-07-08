@@ -14,6 +14,7 @@ import {
   getPostComments,
   getSingleComment,
   getSinglePost,
+  toggleLikeBlogPost,
   updateComment,
   uploadCover,
 } from "../../controllers/blogPosts.js"
@@ -57,6 +58,13 @@ blogPostsRouter.put("/:postId/comments/:commentId", validateObjectId, getPost, u
 
 // DELETE comment on a post
 blogPostsRouter.delete("/:postId/comments/:commentId", validateObjectId, getPost, deleteComment)
+
+// #############
+// ### LIKES ###
+// #############
+
+// POST like on blog post
+blogPostsRouter.post("/:postId/like", validateObjectId, toggleLikeBlogPost)
 
 // #############
 // ### COVER ###

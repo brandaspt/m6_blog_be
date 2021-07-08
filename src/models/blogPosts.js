@@ -23,6 +23,7 @@ const blogPostSchema = new Schema(
     content: reqString,
     readTime: reqString,
     comments: [commentSchema],
+    likes: [{ type: Schema.Types.ObjectId, ref: "Author" }],
   },
   { timestamps: true }
 )
